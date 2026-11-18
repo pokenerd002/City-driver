@@ -1,0 +1,1542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>City Stunt Driver 3D</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;overflow:hidden;background:#080d16;color:#fff;font-family:'Segoe UI',Arial,sans-serif;user-select:none}
+canvas{display:block}
+#hud{position:fixed;inset:0;pointer-events:none;z-index:2}
+.panel{background:rgba(10,16,28,.82);border:1px solid rgba(255,255,255,.15);border-radius:14px;padding:11px 16px;backdrop-filter:blur(8px);box-shadow:0 8px 24px rgba(0,0,0,.35)}
+#topBar{position:absolute;top:16px;left:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.stat{font-weight:700;font-size:15px;letter-spacing:.3px}
+.stat span{color:#ffc94b}
+#garageBtn{pointer-events:auto;background:linear-gradient(135deg,#ffc94b,#ff9f1c);color:#1a1205;border:0;border-radius:12px;padding:11px 16px;font-weight:800;font-size:14px;cursor:pointer;box-shadow:0 6px 18px rgba(255,180,40,.35);transition:transform .12s,filter .12s}
+#garageBtn:hover{transform:translateY(-2px);filter:brightness(1.08)}
+#camBtn{pointer-events:auto;background:rgba(18,28,48,.88);color:#dbe7ff;border:1px solid rgba(255,255,255,.22);border-radius:12px;padding:11px 14px;font-weight:700;font-size:13px;cursor:pointer}
+#camBtn:hover{background:rgba(34,50,82,.95)}
+
+#minimapWrap{position:absolute;top:16px;right:16px;padding:8px;border-radius:16px}
+#minimap{display:block;border-radius:10px;background:#111927}
+
+#bottomRight{position:absolute;right:18px;bottom:18px;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+#speedPanel{min-width:175px;text-align:right}
+#speedVal{font-size:38px;font-weight:900;line-height:1;color:#fff;font-variant-numeric:tabular-nums}
+#speedUnit{font-size:12px;color:#9bb0cf;font-weight:700;letter-spacing:1px}
+#boostBar{width:160px;height:10px;background:#1e293b;border-radius:8px;margin-top:8px;overflow:hidden;border:1px solid rgba(255,255,255,.12)}
+#boostFill{height:100%;width:100%;background:linear-gradient(90deg,#00d2ff,#3a7bd5);transition:width .08s}
+#driftBar{width:160px;height:6px;background:#1e293b;border-radius:6px;margin-top:5px;overflow:hidden}
+#driftFill{height:100%;width:0%;background:linear-gradient(90deg,#f59e0b,#ef4444);transition:width .06s}
+
+#trickBanner{position:absolute;top:22%;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none;transition:opacity .2s}
+#trickTitle{font-size:clamp(22px,4vw,34px);font-weight:900;color:#ffe066;text-shadow:0 3px 12px rgba(0,0,0,.9),0 0 20px rgba(255,200,50,.5);letter-spacing:.5px}
+#trickDetail{font-size:15px;font-weight:700;color:#74c0fc;text-shadow:0 2px 6px #000;margin-top:4px}
+#trickPoints{font-size:20px;font-weight:800;color:#51cf66;text-shadow:0 2px 6px #000;margin-top:2px}
+
+#toast{position:absolute;bottom:115px;left:50%;transform:translateX(-50%);font-size:18px;font-weight:800;text-shadow:0 2px 8px #000;text-align:center;white-space:nowrap}
+#controlsHint{position:absolute;left:18px;bottom:18px;font-size:12px;color:#b8c7e0;line-height:1.55}
+#controlsHint b{color:#ffc94b}
+
+#overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(4,8,16,.86);z-index:10;backdrop-filter:blur(6px)}
+.modal{width:min(780px,94vw);max-height:92vh;overflow:auto;background:#111b2e;border:1px solid #3c5275;border-radius:20px;padding:26px;box-shadow:0 25px 80px #000;text-align:center}
+h1{margin:0 0 8px;font-size:clamp(28px,5vw,44px);color:#ffc94b;letter-spacing:.5px}
+.subText{color:#bdd0eb;font-size:15px;line-height:1.5;margin:0 0 16px}
+.primaryBtn{background:linear-gradient(135deg,#ffc94b,#ff9f1c);color:#171104;border:0;border-radius:12px;padding:14px 28px;font-size:17px;font-weight:800;cursor:pointer;margin:6px;box-shadow:0 8px 24px rgba(255,180,40,.3)}
+.primaryBtn:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.secBtn{background:#223452;color:#fff;border:1px solid #56729e;border-radius:10px;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer;margin:6px}
+.secBtn:hover{background:#2d446b}
+
+.carGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px;margin:14px 0;text-align:left}
+.carCard{background:#0c1424;border:2px solid #2e4263;border-radius:14px;padding:13px;display:flex;flex-direction:column;justify-content:space-between;transition:border-color .15s,transform .12s}
+.carCard:hover{border-color:#6d91c7;transform:translateY(-2px)}
+.carCard.active{border-color:#ffc94b;background:#16243d;box-shadow:0 0 18px rgba(255,201,75,.22)}
+.carTitle{font-size:16px;font-weight:800;color:#fff;display:flex;justify-content:space-between;align-items:center}
+.carDesc{font-size:12px;color:#9bb0cf;margin:5px 0 9px;line-height:1.4}
+.statRow{font-size:11px;color:#cbd5e1;margin:3px 0}
+.barBg{height:6px;background:#1e293b;border-radius:4px;overflow:hidden;margin-top:2px}
+.barFg{height:100%;background:#38bdf8}
+.cardBtn{margin-top:10px;width:100%;padding:9px;border-radius:9px;border:0;font-weight:800;font-size:13px;cursor:pointer;background:#ffc94b;color:#181205}
+.cardBtn.equip{background:#2b8a3e;color:#fff}
+.cardBtn.equipped{background:#1e293b;color:#94a3b8;cursor:default}
+.cardBtn:disabled{opacity:.42;cursor:not-allowed}
+
+.paintRow{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin:12px 0;padding:10px;background:#0c1424;border-radius:12px;border:1px solid #2e4263}
+.swatch{width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,.35);cursor:pointer;transition:transform .12s}
+.swatch:hover{transform:scale(1.15)}
+.swatch.sel{border:3px solid #fff;box-shadow:0 0 10px #fff;transform:scale(1.15)}
+</style>
+</head>
+<body>
+
+<div id="hud">
+  <div id="topBar">
+    <div class="panel stat">💰 Coins: <span id="coinVal">0</span></div>
+    <div class="panel stat">🏆 Score: <span id="scoreVal">0</span></div>
+    <div class="panel stat">🔥 Best: <span id="bestVal">0</span></div>
+    <button id="garageBtn">🚗 GARAGE / CARS (G)</button>
+    <button id="camBtn">🎥 CAM: CHASE (C)</button>
+  </div>
+
+  <div id="minimapWrap" class="panel">
+    <canvas id="minimap" width="156" height="156"></canvas>
+  </div>
+
+  <div id="trickBanner" style="opacity:0">
+    <div id="trickTitle">BARREL ROLL!</div>
+    <div id="trickDetail">360° Flip · 1.4s Air</div>
+    <div id="trickPoints">+450 PTS</div>
+  </div>
+
+  <div id="toast"></div>
+
+  <div id="controlsHint" class="panel">
+    <b>W/S</b> Drive &amp; Brake · <b>A/D</b> Steer · <b>Space</b> Drift · <b>Shift</b> Nitro<br>
+    <b>In Air:</b> <b>W/S</b> Flip · <b>A/D</b> Barrel Roll · <b>Q/E</b> 360 Spin · <b>R</b> Reset · <b>G</b> Garage
+  </div>
+
+  <div id="bottomRight">
+    <div id="speedPanel" class="panel">
+      <div id="speedVal">0</div>
+      <div id="speedUnit">MPH · GEAR <span id="gearVal">1</span> · <span id="carNameHud">STREET COMPACT</span></div>
+      <div id="boostBar"><div id="boostFill"></div></div>
+      <div id="driftBar"><div id="driftFill"></div></div>
+    </div>
+  </div>
+</div>
+
+<div id="overlay">
+  <div id="startModal" class="modal">
+    <h1>🏎️ CITY STUNT DRIVER 3D</h1>
+    <p class="subText">Tear through a massive downtown playground! Launch off ramps, thread floating stunt rings, pull off mid-air flips &amp; barrel rolls, and collect coins to unlock 6 custom stunt cars.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;text-align:left;background:#0c1424;padding:14px;border-radius:14px;border:1px solid #2e4263;margin-bottom:16px;font-size:13px;color:#cbd5e1">
+      <div>🚀 <b>Drive &amp; Drift:</b> WASD / Arrows to drive, <b>Space</b> to drift for mini-boost, <b>Shift</b> for Nitro.</div>
+      <div>🌀 <b>Air Tricks:</b> While airborne, hold <b>W/S</b> to Flip, <b>A/D</b> to Barrel Roll, and <b>Q/E</b> to Flat Spin!</div>
+      <div>💰 <b>Coins &amp; Garage:</b> Grab gold &amp; star coins across roads, ramps, and rooftops. Press <b>G</b> anytime to buy new cars!</div>
+    </div>
+    <button id="playBtn" class="primaryBtn">START DRIVING ▶</button>
+  </div>
+
+  <div id="garageModal" class="modal" style="display:none">
+    <h1 style="font-size:32px">🚗 STUNT GARAGE &amp; DEALERSHIP</h1>
+    <p class="subText" style="margin-bottom:8px">Available Coins: <b style="color:#ffc94b;font-size:18px">💰 <span id="garageCoins">0</span></b></p>
+    <div class="paintRow">
+      <span style="font-size:13px;font-weight:700;color:#cbd5e1">🎨 Custom Paint:</span>
+      <div id="swatches" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+    </div>
+    <div id="carGrid" class="carGrid"></div>
+    <button id="closeGarageBtn" class="primaryBtn">BACK TO CITY (G)</button>
+  </div>
+</div>
+
+<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+<script>
+if(typeof THREE==="undefined"){
+  document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"><\/script>');
+}
+</script>
+<script>
+window.addEventListener("load", () => {
+"use strict";
+
+const $ = id => document.getElementById(id);
+if(typeof THREE==="undefined"){
+  document.body.innerHTML="<p style='padding:30px;font-size:18px;color:white'>Failed to load Three.js. Please check your internet connection and reload.</p>";
+  return;
+}
+
+/* =========================================
+   CAR CATALOG & SAVE DATA
+========================================= */
+
+const CARS = [
+  {
+    id:"compact",name:"Street Compact",cost:0,
+    desc:"Agile hatchback with crisp handling and quick air recovery.",
+    maxSpeed:44,accel:34,turn:2.55,airSpin:3.6,jumpBonus:1.0,driftMult:1.0,
+    defaultColor:"#ff4757"
+  },
+  {
+    id:"muscle",name:"Muscle V8",cost:150,
+    desc:"Heavy American V8 with huge drift power and classic racing stripes.",
+    maxSpeed:51,accel:40,turn:2.35,airSpin:3.3,jumpBonus:1.05,driftMult:1.35,
+    defaultColor:"#ff9f1c"
+  },
+  {
+    id:"buggy",name:"Baja Stunt Buggy",cost:300,
+    desc:"Long-travel offroad suspension with extra ramp launch & forgiving landings.",
+    maxSpeed:49,accel:38,turn:2.65,airSpin:4.0,jumpBonus:1.22,driftMult:1.15,
+    defaultColor:"#2ec4b6"
+  },
+  {
+    id:"tuner",name:"Neon Drift Tuner",cost:500,
+    desc:"Widebody JDM drift machine with glowing neon underglow & fast spins.",
+    maxSpeed:56,accel:44,turn:2.8,airSpin:4.4,jumpBonus:1.1,driftMult:1.6,
+    defaultColor:"#a855f7"
+  },
+  {
+    id:"police",name:"Police Interceptor",cost:750,
+    desc:"Pursuit cruiser with flashing red/blue lightbar and heavy nitro thrust.",
+    maxSpeed:60,accel:48,turn:2.6,airSpin:4.1,jumpBonus:1.12,driftMult:1.3,
+    defaultColor:"#1e293b"
+  },
+  {
+    id:"hyper",name:"Apex Hypercar",cost:1200,
+    desc:"Aerodynamic carbon wedge with extreme top speed and lightning air flips.",
+    maxSpeed:68,accel:55,turn:2.85,airSpin:4.9,jumpBonus:1.18,driftMult:1.45,
+    defaultColor:"#00d2ff"
+  }
+];
+
+const PAINT_COLORS = [
+  "#ff4757","#ff9f1c","#ffd43b","#2ec4b6",
+  "#00d2ff","#3b82f6","#a855f7","#f8fafc"
+];
+
+const SAVE_KEY = "cityStuntDriver3D_save_v1";
+const saveState = {
+  coins: 0,
+  bestScore: 0,
+  unlocked: ["compact"],
+  selected: "compact",
+  paints: {}
+};
+
+function loadSave(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) return;
+    const d = JSON.parse(raw);
+    if(Number.isFinite(d.coins)) saveState.coins = Math.max(0, Math.floor(d.coins));
+    if(Number.isFinite(d.bestScore)) saveState.bestScore = Math.max(0, Math.floor(d.bestScore));
+    if(Array.isArray(d.unlocked) && d.unlocked.length) saveState.unlocked = d.unlocked;
+    if(d.selected && CARS.some(c=>c.id===d.selected)) saveState.selected = d.selected;
+    if(d.paints && typeof d.paints==="object") saveState.paints = d.paints;
+  }catch(e){}
+}
+
+function writeSave(){
+  try{ localStorage.setItem(SAVE_KEY, JSON.stringify(saveState)); }catch(e){}
+}
+
+loadSave();
+
+function activeCarSpec(){
+  return CARS.find(c=>c.id===saveState.selected) || CARS[0];
+}
+
+function activeCarColor(){
+  const spec = activeCarSpec();
+  return saveState.paints[spec.id] || spec.defaultColor;
+}
+
+/* =========================================
+   THREE.JS SCENE, LIGHTING & CITY WORLD
+========================================= */
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x69a7db);
+scene.fog = new THREE.Fog(0x69a7db, 85, 250);
+
+const camera = new THREE.PerspectiveCamera(68, innerWidth/innerHeight, 0.2, 340);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.domElement.tabIndex = 0;
+renderer.domElement.style.outline = "none";
+document.body.appendChild(renderer.domElement);
+
+scene.add(new THREE.HemisphereLight(0xdff2ff, 0x3b4856, 1.45));
+
+const sun = new THREE.DirectionalLight(0xfff8eb, 2.0);
+sun.position.set(65, 110, 50);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.left = -135;
+sun.shadow.camera.right = 135;
+sun.shadow.camera.top = 135;
+sun.shadow.camera.bottom = -135;
+sun.shadow.camera.far = 280;
+scene.add(sun);
+
+const mat = (color, roughness=0.8, metalness=0.1) =>
+  new THREE.MeshStandardMaterial({color, roughness, metalness});
+
+function addBox(parent, x, y, z, w, h, d, material, cast=true, receive=true){
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
+  m.position.set(x, y, z);
+  m.castShadow = cast;
+  m.receiveShadow = receive;
+  parent.add(m);
+  return m;
+}
+
+/* ---------- Collision & Surface Geometry Lists ---------- */
+const WORLD_HALF = 125;
+const wallBoxes = [];     // {x, z, w, d, topY}
+const ramps = [];         // {x, z, w, d, dirX, dirZ, hStart, hEnd}
+const platforms = [];     // {x, z, w, d, y}
+const boostPads = [];     // {x, z, w, d, dirX, dirZ, mesh}
+const stuntRings = [];    // {x, y, z, radius, rotY, mesh, cooldown}
+const coins = [];         // {x, y, z, value, isStar, mesh, active, respawnTimer}
+
+function addWallBox(x, z, w, d, h){
+  wallBoxes.push({x, z, w, d, topY:h});
+}
+
+function addPlatform(x, z, w, d, y){
+  platforms.push({x, z, w, d, y});
+}
+
+/* ---------- Build Downtown City ---------- */
+const cityGroup = new THREE.Group();
+scene.add(cityGroup);
+
+// Ground Asphalt
+const groundMesh = new THREE.Mesh(new THREE.PlaneGeometry(WORLD_HALF*2, WORLD_HALF*2), mat(0x2b303a, 0.92));
+groundMesh.rotation.x = -Math.PI/2;
+groundMesh.receiveShadow = true;
+cityGroup.add(groundMesh);
+
+// Outer perimeter barrier walls
+const barrierMat = mat(0x475569, 0.7);
+const stripeRedMat = mat(0xef4444, 0.6);
+addBox(cityGroup, 0, 2.5, -WORLD_HALF, WORLD_HALF*2, 5, 3, barrierMat);
+addBox(cityGroup, 0, 2.5, WORLD_HALF, WORLD_HALF*2, 5, 3, barrierMat);
+addBox(cityGroup, -WORLD_HALF, 2.5, 0, 3, 5, WORLD_HALF*2, barrierMat);
+addBox(cityGroup, WORLD_HALF, 2.5, 0, 3, 5, WORLD_HALF*2, barrierMat);
+
+// Road grid & dashed yellow lines
+const dashCanvas = document.createElement("canvas");
+dashCanvas.width = 16; dashCanvas.height = 64;
+const dctx = dashCanvas.getContext("2d");
+dctx.fillStyle = "#facc15";
+dctx.fillRect(5, 0, 6, 34);
+const dashTex = new THREE.CanvasTexture(dashCanvas);
+dashTex.wrapS = dashTex.wrapT = THREE.RepeatWrapping;
+dashTex.repeat.set(1, 56);
+const dashMat = new THREE.MeshBasicMaterial({map:dashTex, transparent:true});
+
+const ROAD_COORDS = [-72, -24, 24, 72];
+for(const c of ROAD_COORDS){
+  const v = new THREE.Mesh(new THREE.PlaneGeometry(0.8, WORLD_HALF*2 - 8), dashMat);
+  v.rotation.x = -Math.PI/2;
+  v.position.set(c, 0.04, 0);
+  cityGroup.add(v);
+
+  const h = new THREE.Mesh(new THREE.PlaneGeometry(0.8, WORLD_HALF*2 - 8), dashMat);
+  h.rotation.set(-Math.PI/2, 0, Math.PI/2);
+  h.position.set(0, 0.045, c);
+  cityGroup.add(h);
+}
+
+// Skyscraper window texture
+function makeWindowTexture(){
+  const c = document.createElement("canvas");
+  c.width = 128; c.height = 128;
+  const g = c.getContext("2d");
+  g.fillStyle = "#475569";
+  g.fillRect(0,0,128,128);
+  let seed = 4242;
+  const rand = () => { seed = (seed*16807)%2147483647; return (seed-1)/2147483646; };
+  for(let y=0;y<4;y++){
+    for(let x=0;x<4;x++){
+      g.fillStyle = rand() < 0.42 ? "#fef08a" : "#1e293b";
+      g.fillRect(x*32+6, y*32+6, 20, 20);
+    }
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+const winTex = makeWindowTexture();
+const buildingTints = [0x64748b, 0x78716c, 0x526582, 0x8b7e74, 0x4b6079];
+
+function buildSkyscraper(x, z, w, d, h, tintIdx=0){
+  const tint = buildingTints[tintIdx % buildingTints.length];
+  const tx = winTex.clone(); tx.needsUpdate = true;
+  tx.repeat.set(Math.max(1, Math.round(d/5)), Math.max(1, Math.round(h/5)));
+  const tz = winTex.clone(); tz.needsUpdate = true;
+  tz.repeat.set(Math.max(1, Math.round(w/5)), Math.max(1, Math.round(h/5)));
+
+  const matX = new THREE.MeshStandardMaterial({map:tx, color:tint, roughness:0.75});
+  const matZ = new THREE.MeshStandardMaterial({map:tz, color:tint, roughness:0.75});
+  const roofMat = mat(0x334155, 0.85);
+
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), [matX, matX, roofMat, roofMat, matZ, matZ]);
+  mesh.position.set(x, h/2, z);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  cityGroup.add(mesh);
+
+  // Rooftop safety rim
+  addBox(cityGroup, x, h+0.3, z-d/2+0.3, w, 0.6, 0.5, roofMat);
+  addBox(cityGroup, x, h+0.3, z+d/2-0.3, w, 0.6, 0.5, roofMat);
+
+  addWallBox(x, z, w, d, h);
+  addPlatform(x, z, w, d, h);
+}
+
+// City Blocks (-96, -48, 0, 48, 96)
+const BLOCK_CENTERS = [-96, -48, 0, 48, 96];
+let bCounter = 0;
+for(const bx of BLOCK_CENTERS){
+  for(const bz of BLOCK_CENTERS){
+    // Sidewalk slab
+    addBox(cityGroup, bx, 0.08, bz, 34, 0.16, 34, mat(0x94a3b8, 0.9), false, true);
+
+    // Center block (0,0) is Stunt Park Plaza!
+    if(bx===0 && bz===0){
+      addBox(cityGroup, 0, 0.12, 0, 32, 0.12, 32, mat(0x2f855a, 0.9), false, true);
+      // Central Fountain
+      const fBase = new THREE.Mesh(new THREE.CylinderGeometry(4.2, 4.6, 0.9, 24), mat(0xcbd5e1));
+      fBase.position.set(0, 0.45, 0); fBase.castShadow = true; cityGroup.add(fBase);
+      const fWater = new THREE.Mesh(new THREE.CylinderGeometry(3.7, 3.7, 0.15, 24), mat(0x38bdf8, 0.2));
+      fWater.position.set(0, 0.92, 0); cityGroup.add(fWater);
+      addWallBox(0, 0, 8.2, 8.2, 1.4);
+      continue;
+    }
+
+    // Special Stunt Blocks at (-48,0) and (48,0): Low-rise jumpable rooftops!
+    if((bx===-48 && bz===0) || (bx===48 && bz===0)){
+      buildSkyscraper(bx, bz-7, 22, 12, 6.5, bCounter++);
+      buildSkyscraper(bx, bz+7, 22, 12, 6.5, bCounter++);
+      continue;
+    }
+
+    // Standard Downtown Blocks with 2 skyscrapers per block (leaving alleyways)
+    const h1 = 16 + (bCounter%4)*7;
+    const h2 = 14 + ((bCounter+2)%4)*6;
+    if(bCounter%2===0){
+      buildSkyscraper(bx-7.5, bz, 13, 26, h1, bCounter);
+      buildSkyscraper(bx+7.5, bz, 13, 26, h2, bCounter+1);
+    }else{
+      buildSkyscraper(bx, bz-7.5, 26, 13, h1, bCounter);
+      buildSkyscraper(bx, bz+7.5, 26, 13, h2, bCounter+1);
+    }
+    bCounter++;
+  }
+}
+
+/* ---------- Ramps, Skybridges, Boost Pads & Stunt Rings ---------- */
+
+function createRamp(x, z, w, d, dirX, dirZ, hStart, hEnd, color=0xff9f1c){
+  // Build a smooth wedge mesh aligned with direction (dirX, dirZ)
+  const rampMat = new THREE.MeshStandardMaterial({color, roughness:0.55, metalness:0.2});
+  const stripeMat = new THREE.MeshBasicMaterial({color:0xfff066});
+
+  const geo = new THREE.BufferGeometry();
+  const hw = w/2, hd = d/2;
+  // Local space: -Z is back (hStart), +Z is front/launch (hEnd)
+  const verts = new Float32Array([
+    // Top sloped face (2 triangles)
+    -hw, hStart, -hd,   hw, hStart, -hd,   hw, hEnd, hd,
+    -hw, hStart, -hd,   hw, hEnd, hd,     -hw, hEnd, hd,
+    // Back face
+    -hw, 0, -hd,        hw, 0, -hd,        hw, hStart, -hd,
+    -hw, 0, -hd,        hw, hStart, -hd,  -hw, hStart, -hd,
+    // Front face
+    -hw, 0, hd,        -hw, hEnd, hd,      hw, hEnd, hd,
+    -hw, 0, hd,         hw, hEnd, hd,      hw, 0, hd,
+    // Left face
+    -hw, 0, -hd,       -hw, hStart, -hd,  -hw, hEnd, hd,
+    -hw, 0, -hd,       -hw, hEnd, hd,     -hw, 0, hd,
+    // Right face
+     hw, 0, -hd,        hw, 0, hd,         hw, hEnd, hd,
+     hw, 0, -hd,        hw, hEnd, hd,      hw, hStart, -hd
+  ]);
+  geo.setAttribute("position", new THREE.BufferAttribute(verts, 3));
+  geo.computeVertexNormals();
+
+  const mesh = new THREE.Mesh(geo, rampMat);
+  mesh.position.set(x, 0, z);
+  const angle = Math.atan2(dirX, dirZ);
+  mesh.rotation.y = angle;
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  cityGroup.add(mesh);
+
+  // Glowing chevron strip near launch lip
+  const lip = new THREE.Mesh(new THREE.BoxGeometry(w*0.86, 0.14, 0.7), stripeMat);
+  lip.position.set(x + dirX*(hd-0.6), hEnd + 0.04, z + dirZ*(hd-0.6));
+  lip.rotation.y = angle;
+  cityGroup.add(lip);
+
+  // Store axis-aligned bounding box & slope parameters
+  const alongX = Math.abs(dirX) > 0.5;
+  ramps.push({
+    x, z,
+    w: alongX ? d : w,
+    d: alongX ? w : d,
+    dirX, dirZ,
+    hStart, hEnd
+  });
+}
+
+function createBoostPad(x, z, dirX, dirZ){
+  const alongX = Math.abs(dirX) > 0.5;
+  const w = alongX ? 7.5 : 4.2;
+  const d = alongX ? 4.2 : 7.5;
+  const padMat = new THREE.MeshBasicMaterial({color:0x00f5d4});
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, 0.12, d), padMat);
+  mesh.position.set(x, 0.06, z);
+  cityGroup.add(mesh);
+
+  const glow = new THREE.PointLight(0x00f5d4, 1.5, 12);
+  glow.position.set(x, 1.2, z);
+  cityGroup.add(glow);
+
+  boostPads.push({x, z, w, d, dirX, dirZ, mesh});
+}
+
+function createStuntRing(x, y, z, radius=4.4, rotY=0){
+  const torus = new THREE.Mesh(
+    new THREE.TorusGeometry(radius, 0.34, 12, 32),
+    new THREE.MeshStandardMaterial({color:0xffbe0b, emissive:0xff7b00, emissiveIntensity:0.55, roughness:0.25, metalness:0.7})
+  );
+  torus.position.set(x, y, z);
+  torus.rotation.y = rotY;
+  cityGroup.add(torus);
+  stuntRings.push({x, y, z, radius, rotY, mesh:torus, cooldown:0});
+}
+
+// Launch Ramps onto the Low-Rise Stunt Rooftops at (-48,0) and (48,0)
+createRamp(-48, -23, 8, 14, 0, 1, 0, 6.6, 0xff9f1c);
+createRamp(-48,  23, 8, 14, 0, -1, 0, 6.6, 0xff9f1c);
+createRamp( 48, -23, 8, 14, 0, 1, 0, 6.6, 0x38bdf8);
+createRamp( 48,  23, 8, 14, 0, -1, 0, 6.6, 0x38bdf8);
+
+// Skybridge connecting the two rooftops at (-48, -7) and (-48, 7)
+addBox(cityGroup, -48, 6.35, 0, 9, 0.4, 8, mat(0xfbbf24, 0.5));
+addPlatform(-48, 0, 9, 8, 6.55);
+
+// Gap Jump Ramp between (48, -7) and (48, 7) with floating Stunt Ring!
+createStuntRing(48, 9.2, 0, 4.0, 0);
+
+// Mega Ramps along Main Avenues
+createRamp(-24, -46, 8, 15, 0, 1, 0, 6.2, 0xf43f5e);
+createRamp(-24, -18, 8, 15, 0, -1, 0, 6.2, 0xf43f5e);
+createStuntRing(-24, 9.5, -32, 4.6, 0);
+
+createRamp(24, 46, 8, 15, 0, -1, 0, 6.2, 0xa855f7);
+createRamp(24, 18, 8, 15, 0, 1, 0, 6.2, 0xa855f7);
+createStuntRing(24, 9.5, 32, 4.6, 0);
+
+// East-West Boulevard Ramps & Rings
+createRamp(-46, -24, 8, 14, 1, 0, 0, 5.8, 0x10b981);
+createStuntRing(-32, 8.8, -24, 4.4, Math.PI/2);
+
+createRamp(46, 24, 8, 14, -1, 0, 0, 5.8, 0x3b82f6);
+createStuntRing(32, 8.8, 24, 4.4, Math.PI/2);
+
+// Plaza Fountain Jump Ramps
+createRamp(-12, 0, 6.5, 10, 1, 0, 0, 3.8, 0xfacc15);
+createRamp( 12, 0, 6.5, 10, -1, 0, 0, 3.8, 0xfacc15);
+createStuntRing(0, 6.8, 0, 4.2, Math.PI/2);
+
+// Outer Ring High-Speed Ramps
+createRamp(-72, -88, 9, 16, 0, 1, 0, 7.0, 0xff595e);
+createStuntRing(-72, 10.5, -72, 4.8, 0);
+
+createRamp(72, 88, 9, 16, 0, -1, 0, 7.0, 0x00bbf9);
+createStuntRing(72, 10.5, 72, 4.8, 0);
+
+// Boost Pads on Straightaways
+createBoostPad(-24, -64, 0, 1);
+createBoostPad(24, 64, 0, -1);
+createBoostPad(-64, -24, 1, 0);
+createBoostPad(64, 24, -1, 0);
+createBoostPad(-72, 20, 0, -1);
+createBoostPad(72, -20, 0, 1);
+createBoostPad(0, -72, 1, 0);
+createBoostPad(0, 72, -1, 0);
+
+/* ---------- Collectible Coins & High-Value Star Gems ---------- */
+const coinGeo = new THREE.CylinderGeometry(0.75, 0.75, 0.22, 16);
+coinGeo.rotateX(Math.PI/2);
+const coinMat = new THREE.MeshStandardMaterial({color:0xffd43b, emissive:0xd97706, emissiveIntensity:0.35, metalness:0.8, roughness:0.2});
+
+const starGeo = new THREE.OctahedronGeometry(0.95, 0);
+const starMat = new THREE.MeshStandardMaterial({color:0x38bdf8, emissive:0x0284c7, emissiveIntensity:0.55, metalness:0.6, roughness:0.15});
+
+function addCoin(x, y, z, isStar=false){
+  const mesh = new THREE.Mesh(isStar ? starGeo : coinGeo, isStar ? starMat : coinMat);
+  mesh.position.set(x, y, z);
+  cityGroup.add(mesh);
+  coins.push({
+    x, y, z,
+    value: isStar ? 25 : 5,
+    isStar,
+    mesh,
+    active: true,
+    respawnTimer: 0
+  });
+}
+
+// Scatter 85+ coins along avenues, ramps, rooftops & stunt rings
+for(const rx of ROAD_COORDS){
+  for(let z=-96; z<=96; z+=24){
+    if(Math.abs(z)===24 || Math.abs(z)===72) continue;
+    addCoin(rx, 1.1, z, false);
+  }
+}
+for(const rz of ROAD_COORDS){
+  for(let x=-96; x<=96; x+=24){
+    if(Math.abs(x)===24 || Math.abs(x)===72 || Math.abs(x)===48) continue;
+    addCoin(x, 1.1, rz, false);
+  }
+}
+
+// Star Gems inside every Stunt Ring & on Stunt Rooftops!
+for(const ring of stuntRings){
+  addCoin(ring.x, ring.y, ring.z, true);
+}
+for(const sx of [-48, 48]){
+  for(const sz of [-9, -5, 5, 9]){
+    addCoin(sx, 7.6, sz, true);
+  }
+}
+// Extra coins leading up ramps
+for(const r of ramps){
+  addCoin(r.x, (r.hStart+r.hEnd)*0.5 + 1.1, r.z, false);
+  addCoin(r.x + r.dirX*4, r.hEnd + 1.4, r.z + r.dirZ*4, true);
+}
+
+/* =========================================
+   PLAYER CAR 3D BUILDER (6 DISTINCT MODELS)
+========================================= */
+
+const carRoot = new THREE.Group();
+scene.add(carRoot);
+const carVisual = new THREE.Group();
+carRoot.add(carVisual);
+
+const wheels = [];
+let policeBeaconRed = null;
+let policeBeaconBlue = null;
+let underglowLight = null;
+
+function buildCarMesh(){
+  while(carVisual.children.length > 0){
+    carVisual.remove(carVisual.children[0]);
+  }
+  wheels.length = 0;
+  policeBeaconRed = null;
+  policeBeaconBlue = null;
+  underglowLight = null;
+
+  const spec = activeCarSpec();
+  const bodyColor = new THREE.Color(activeCarColor());
+  const paintMat = new THREE.MeshStandardMaterial({color:bodyColor, roughness:0.28, metalness:0.55});
+  const darkTrim = mat(0x181c24, 0.65, 0.3);
+  const glassMat = mat(0x0f172a, 0.15, 0.85);
+  const lightHead = new THREE.MeshBasicMaterial({color:0xfff9db});
+  const lightTail = new THREE.MeshBasicMaterial({color:0xff2a2a});
+  const wheelMat = mat(0x141619, 0.85, 0.1);
+  const rimMat = mat(0xcbd5e1, 0.3, 0.8);
+
+  const isBuggy = spec.id==="buggy";
+  const isHyper = spec.id==="hyper";
+  const isMuscle = spec.id==="muscle";
+  const isTuner = spec.id==="tuner";
+  const isPolice = spec.id==="police";
+
+  const rideY = isBuggy ? 0.68 : (isHyper ? 0.44 : 0.52);
+  const bodyW = isHyper ? 2.15 : 1.98;
+  const bodyL = isHyper ? 4.45 : (isMuscle ? 4.35 : 4.05);
+  const bodyH = isHyper ? 0.56 : 0.68;
+
+  // Main Chassis
+  addBox(carVisual, 0, rideY + bodyH/2, 0, bodyW, bodyH, bodyL, paintMat);
+
+  // Cabin / Roof
+  if(isBuggy){
+    // Tubular Roll-Cage & Open Cabin
+    addBox(carVisual, 0, rideY + bodyH + 0.35, -0.1, 1.45, 0.65, 1.8, darkTrim);
+    addBox(carVisual, 0, rideY + bodyH + 0.68, -0.1, 1.5, 0.08, 1.85, paintMat);
+    // Roof floodlights
+    for(const lx of [-0.45, 0, 0.45]){
+      addBox(carVisual, lx, rideY + bodyH + 0.78, 0.75, 0.22, 0.16, 0.14, lightHead, false);
+    }
+  }else if(isHyper){
+    // Sleek Low-Slung Teardrop Canopy
+    addBox(carVisual, 0, rideY + bodyH + 0.24, 0.05, 1.65, 0.46, 2.0, glassMat);
+    addBox(carVisual, 0, rideY + bodyH + 0.48, -0.1, 1.42, 0.07, 1.5, paintMat);
+    // Carbon Rear Wing
+    addBox(carVisual, -0.75, rideY + bodyH + 0.35, -bodyL/2 + 0.25, 0.1, 0.55, 0.3, darkTrim);
+    addBox(carVisual,  0.75, rideY + bodyH + 0.35, -bodyL/2 + 0.25, 0.1, 0.55, 0.3, darkTrim);
+    addBox(carVisual, 0, rideY + bodyH + 0.62, -bodyL/2 + 0.22, 2.15, 0.09, 0.45, darkTrim);
+  }else{
+    const cabH = isMuscle ? 0.52 : 0.58;
+    const cabL = isMuscle ? 1.85 : 2.05;
+    addBox(carVisual, 0, rideY + bodyH + cabH/2, -0.15, bodyW*0.82, cabH, cabL, glassMat);
+    addBox(carVisual, 0, rideY + bodyH + cabH + 0.03, -0.15, bodyW*0.8, 0.07, cabL*0.92, paintMat);
+  }
+
+  // Model-Specific Details
+  if(isMuscle){
+    // Twin Racing Stripes & Hood Blower
+    const stripeMat = mat(0xf8fafc, 0.3);
+    addBox(carVisual, -0.26, rideY + bodyH + 0.01, 0.05, 0.18, 0.02, bodyL*0.96, stripeMat, false);
+    addBox(carVisual,  0.26, rideY + bodyH + 0.01, 0.05, 0.18, 0.02, bodyL*0.96, stripeMat, false);
+    addBox(carVisual, 0, rideY + bodyH + 0.16, 1.15, 0.48, 0.26, 0.65, rimMat);
+  }
+
+  if(isTuner){
+    // High Drift Spoiler + Neon Underglow
+    addBox(carVisual, -0.72, rideY + bodyH + 0.32, -bodyL/2 + 0.2, 0.08, 0.52, 0.25, darkTrim);
+    addBox(carVisual,  0.72, rideY + bodyH + 0.32, -bodyL/2 + 0.2, 0.08, 0.52, 0.25, darkTrim);
+    addBox(carVisual, 0, rideY + bodyH + 0.58, -bodyL/2 + 0.18, 2.05, 0.08, 0.38, paintMat);
+    const neonMat = new THREE.MeshBasicMaterial({color:0xd946ef});
+    addBox(carVisual, 0, rideY - 0.02, 0, bodyW*0.92, 0.05, bodyL*0.85, neonMat, false);
+    underglowLight = new THREE.PointLight(0xd946ef, 2.2, 8);
+    underglowLight.position.set(0, 0.35, 0);
+    carVisual.add(underglowLight);
+  }
+
+  if(isPolice){
+    // White Doors + Flashing Red/Blue Lightbar
+    addBox(carVisual, 0, rideY + bodyH/2, -0.1, bodyW + 0.03, bodyH*0.88, 1.65, mat(0xf8fafc, 0.4));
+    addBox(carVisual, 0, rideY + bodyH + 0.64, -0.15, 1.1, 0.1, 0.24, darkTrim);
+    policeBeaconRed = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.14, 0.22), new THREE.MeshBasicMaterial({color:0xff2222}));
+    policeBeaconRed.position.set(-0.28, rideY + bodyH + 0.72, -0.15);
+    policeBeaconBlue = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.14, 0.22), new THREE.MeshBasicMaterial({color:0x2288ff}));
+    policeBeaconBlue.position.set(0.28, rideY + bodyH + 0.72, -0.15);
+    carVisual.add(policeBeaconRed, policeBeaconBlue);
+  }
+
+  // Front Bumper, Headlights & Taillights
+  addBox(carVisual, 0, rideY + 0.18, bodyL/2 + 0.04, bodyW*0.96, 0.24, 0.14, darkTrim);
+  addBox(carVisual, 0, rideY + 0.18, -bodyL/2 - 0.04, bodyW*0.96, 0.24, 0.14, darkTrim);
+  for(const sx of [-0.66, 0.66]){
+    addBox(carVisual, sx, rideY + 0.42, bodyL/2 + 0.02, 0.38, 0.16, 0.06, lightHead, false);
+    addBox(carVisual, sx, rideY + 0.44, -bodyL/2 - 0.02, 0.42, 0.16, 0.06, lightTail, false);
+  }
+
+  // 4 Wheels
+  const wRad = isBuggy ? 0.54 : 0.42;
+  const wThick = isBuggy ? 0.36 : 0.3;
+  const wheelGeo = new THREE.CylinderGeometry(wRad, wRad, wThick, 16);
+  wheelGeo.rotateZ(Math.PI/2);
+  const rimGeo = new THREE.CylinderGeometry(wRad*0.58, wRad*0.58, wThick + 0.02, 12);
+  rimGeo.rotateZ(Math.PI/2);
+
+  const wx = bodyW/2 + 0.06;
+  const wzF = bodyL*0.32;
+  const wzR = -bodyL*0.32;
+
+  for(const [px, pz, isFront] of [[-wx, wzF, true], [wx, wzF, true], [-wx, wzR, false], [wx, wzR, false]]){
+    const pivot = new THREE.Group();
+    pivot.position.set(px, wRad, pz);
+    const tire = new THREE.Mesh(wheelGeo, wheelMat);
+    const rim = new THREE.Mesh(rimGeo, rimMat);
+    tire.castShadow = true;
+    pivot.add(tire, rim);
+    carVisual.add(pivot);
+    wheels.push({pivot, tire, rim, isFront});
+  }
+}
+
+/* =========================================
+   SKID MARKS & NITRO EXHAUST PARTICLES
+========================================= */
+
+const skidPool = [];
+const skidGeo = new THREE.PlaneGeometry(0.28, 0.85);
+skidGeo.rotateX(-Math.PI/2);
+const skidMat = new THREE.MeshBasicMaterial({color:0x0f1115, transparent:true, opacity:0.55, depthWrite:false});
+for(let i=0;i<140;i++){
+  const m = new THREE.Mesh(skidGeo, skidMat);
+  m.visible = false;
+  scene.add(m);
+  skidPool.push(m);
+}
+let skidIdx = 0;
+
+function dropSkid(x, y, z, yaw){
+  const m = skidPool[skidIdx];
+  skidIdx = (skidIdx + 1) % skidPool.length;
+  m.position.set(x, y + 0.03, z);
+  m.rotation.y = yaw;
+  m.visible = true;
+}
+
+const flameGeo = new THREE.SphereGeometry(0.22, 8, 8);
+const flameMat = new THREE.MeshBasicMaterial({color:0x00e5ff, transparent:true, opacity:0.85});
+const flameMesh1 = new THREE.Mesh(flameGeo, flameMat);
+const flameMesh2 = new THREE.Mesh(flameGeo, flameMat);
+flameMesh1.position.set(-0.45, 0.55, -2.25);
+flameMesh2.position.set( 0.45, 0.55, -2.25);
+flameMesh1.visible = flameMesh2.visible = false;
+carVisual.add(flameMesh1, flameMesh2);
+
+/* =========================================
+   VEHICLE PHYSICS, TRICKS & COLLISION STATE
+========================================= */
+
+const car = {
+  x: 0, y: 0, z: 24,
+  vx: 0, vy: 0, vz: 0,
+  yaw: 0,          // heading on XZ plane
+  pitch: 0,        // air flip rotation
+  roll: 0,         // air barrel roll rotation
+  spinOffset: 0,   // air flat spin visual rotation
+  steerAngle: 0,
+  grounded: true,
+const keyState = Object.create(null);
+const DRIVE_KEYS = new Set(["KeyW","KeyA","KeyS","KeyD","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"]);
+
+function isKeyDown(...codes){
+  for(const c of codes){
+    if(keyState[c]) return true;
+  }
+  return false;
+}
+
+function startGame(){
+  playing = true;
+  garageOpen = false;
+  $("overlay").style.display = "none";
+  $("startModal").style.display = "none";
+  $("garageModal").style.display = "none";
+  window.focus();
+  renderer.domElement.focus();
+}
+
+function showToast(text, color="#ffe066"){
+  const el = $("toast");
+  el.textContent = text;
+  el.style.color = color;
+  toastTimer = 2.4;
+}
+
+function getSupportHeight(x, z, currentY){
+  let h = 0;
+  // Check elevated rooftops / skybridges
+  for(const p of platforms){
+    if(Math.abs(x - p.x) <= p.w/2 + 0.4 && Math.abs(z - p.z) <= p.d/2 + 0.4){
+      if(currentY >= p.y - 1.1 && p.y > h){
+        h = p.y;
+      }
+    }
+  }
+  // Check sloped ramps
+  for(const r of ramps){
+    if(Math.abs(x - r.x) <= r.w/2 + 0.3 && Math.abs(z - r.z) <= r.d/2 + 0.3){
+      let t = 0;
+      if(Math.abs(r.dirX) > 0.5){
+        const minX = r.x - r.w/2;
+        t = (x - minX) / r.w;
+        if(r.dirX < 0) t = 1 - t;
+      }else{
+        const minZ = r.z - r.d/2;
+        t = (z - minZ) / r.d;
+        if(r.dirZ < 0) t = 1 - t;
+      }
+      t = Math.max(0, Math.min(1, t));
+      const rh = r.hStart + (r.hEnd - r.hStart)*t;
+      if(currentY >= rh - 1.3 && rh > h){
+        h = rh;
+      }
+    }
+  }
+  return h;
+}
+
+function resolveBuildingCollisions(){
+  const radius = 1.45;
+  for(const b of wallBoxes){
+    // Allow driving onto rooftop if above topY - 0.6
+    if(car.y >= b.topY - 0.65) continue;
+
+    const hx = b.w/2, hz = b.d/2;
+    if(Math.abs(car.x - b.x) > hx + radius || Math.abs(car.z - b.z) > hz + radius) continue;
+
+    const cx = Math.max(b.x - hx, Math.min(car.x, b.x + hx));
+    const cz = Math.max(b.z - hz, Math.min(car.z, b.z + hz));
+    const dx = car.x - cx;
+    const dz = car.z - cz;
+    const d2 = dx*dx + dz*dz;
+
+    if(d2 < radius*radius){
+      let nx = 0, nz = 0, pen = 0;
+      if(d2 > 1e-5){
+        const d = Math.sqrt(d2);
+        nx = dx/d; nz = dz/d;
+        pen = radius - d;
+      }else{
+        const px = hx - Math.abs(car.x - b.x);
+        const pz = hz - Math.abs(car.z - b.z);
+        if(px < pz){ nx = car.x >= b.x ? 1 : -1; pen = px + radius; }
+        else{ nz = car.z >= b.z ? 1 : -1; pen = pz + radius; }
+      }
+      car.x += nx * pen;
+      car.z += nz * pen;
+
+      // Reflect & damp velocity along normal
+      const vn = car.vx*nx + car.vz*nz;
+      if(vn < 0){
+        car.vx -= 1.35 * vn * nx;
+        car.vz -= 1.35 * vn * nz;
+        car.vx *= 0.85;
+        car.vz *= 0.85;
+      }
+    }
+  }
+
+  // World Perimeter Bounds
+  const limit = WORLD_HALF - 2.6;
+  if(car.x < -limit){ car.x = -limit; car.vx = Math.abs(car.vx)*0.5; }
+  if(car.x >  limit){ car.x =  limit; car.vx = -Math.abs(car.vx)*0.5; }
+  if(car.z < -limit){ car.z = -limit; car.vz = Math.abs(car.vz)*0.5; }
+  if(car.z >  limit){ car.z =  limit; car.vz = -Math.abs(car.vz)*0.5; }
+}
+
+function resetCarUpright(){
+  car.y += 1.2;
+  car.vy = 0;
+  car.vx *= 0.25;
+  car.vz *= 0.25;
+  car.pitch = 0;
+  car.roll = 0;
+  car.spinOffset = 0;
+  car.airTime = 0;
+  car.airPitchDeg = 0;
+  car.airRollDeg = 0;
+  car.airSpinDeg = 0;
+  car.airRings = 0;
+  $("trickBanner").style.opacity = "0";
+  showToast("🔄 Car Reset Upright", "#93c5fd");
+}
+
+function evaluateLanding(){
+  const spec = activeCarSpec();
+  // Normalize angles to [-PI, PI]
+  const norm = a => {
+    while(a > Math.PI) a -= Math.PI*2;
+    while(a < -Math.PI) a += Math.PI*2;
+    return Math.abs(a);
+  };
+  const safeLimit = spec.id==="buggy" ? 1.15 : 0.92;
+  const upright = norm(car.pitch) < safeLimit && norm(car.roll) < safeLimit;
+
+  const flips = Math.round(Math.abs(car.airPitchDeg) / 300);
+  const rolls = Math.round(Math.abs(car.airRollDeg) / 300);
+  const spins = Math.round(Math.abs(car.airSpinDeg) / 300);
+  const totalTricks = flips + rolls + spins + car.airRings;
+
+  if(!upright && (car.airTime > 0.45 || totalTricks > 0)){
+    // Crash landing! Wipe unbanked combo
+    car.vx *= 0.35;
+    car.vz *= 0.35;
+    car.vy = 4.5;
+    showToast("💥 WIPEOUT! Land upright to bank tricks!", "#ff6b6b");
+  }else if(totalTricks > 0 || car.airTime > 0.85){
+    const basePts = Math.round(car.airTime*120 + flips*350 + rolls*350 + spins*300 + car.airRings*500);
+    const mult = 1 + totalTricks*0.25;
+    const finalPts = Math.round(basePts * mult);
+    const bonusCoins = Math.max(2, Math.floor(finalPts / 120));
+
+    score += finalPts;
+    saveState.coins += bonusCoins;
+    if(score > saveState.bestScore) saveState.bestScore = score;
+    car.boost = Math.min(100, car.boost + 25 + totalTricks*10);
+    writeSave();
+
+    const parts = [];
+    if(flips > 0) parts.push(`${flips}x FLIP`);
+    if(rolls > 0) parts.push(`${rolls}x BARREL ROLL`);
+    if(spins > 0) parts.push(`${spins}x 360 SPIN`);
+    if(car.airRings > 0) parts.push(`${car.airRings}x STUNT RING`);
+    if(parts.length===0) parts.push("BIG AIR");
+
+    showToast(`🔥 ${parts.join(" + ")}! +${finalPts} PTS (+${bonusCoins} Coins)`, "#51cf66");
+  }
+
+  car.pitch = 0;
+  car.roll = 0;
+  car.spinOffset = 0;
+  car.airTime = 0;
+  car.airPitchDeg = 0;
+  car.airRollDeg = 0;
+  car.airSpinDeg = 0;
+  car.airRings = 0;
+  $("trickBanner").style.opacity = "0";
+}
+
+function updateCar(dt, time){
+  const spec = activeCarSpec();
+
+  const accelIn = isKeyDown("KeyW", "ArrowUp") ? 1 : 0;
+  const brakeIn = isKeyDown("KeyS", "ArrowDown") ? 1 : 0;
+  const steerIn = (isKeyDown("KeyA", "ArrowLeft") ? 1 : 0) - (isKeyDown("KeyD", "ArrowRight") ? 1 : 0);
+  const spinIn  = (isKeyDown("KeyQ") ? 1 : 0) - (isKeyDown("KeyE") ? 1 : 0);
+  const handbrake = isKeyDown("Space");
+  const boosting = isKeyDown("ShiftLeft", "ShiftRight") && car.boost > 2;
+
+  const fwdX = Math.sin(car.yaw);
+  const fwdZ = Math.cos(car.yaw);
+  const rightX = Math.cos(car.yaw);
+  const rightZ = -Math.sin(car.yaw);
+
+  const forwardSpeed = car.vx*fwdX + car.vz*fwdZ;
+  const lateralSpeed = car.vx*rightX + car.vz*rightZ;
+
+  // Nitro Boost
+  if(boosting && (accelIn > 0 || !car.grounded)){
+    car.boost = Math.max(0, car.boost - 28*dt);
+    flameMesh1.visible = flameMesh2.visible = true;
+    const s = 0.8 + Math.random()*0.6;
+    flameMesh1.scale.set(s, s, s*1.8);
+    flameMesh2.scale.set(s, s, s*1.8);
+  }else{
+    car.boost = Math.min(100, car.boost + 9*dt);
+    flameMesh1.visible = flameMesh2.visible = false;
+  }
+
+  if(car.grounded){
+    // Engine acceleration & reverse
+    const topSpd = spec.maxSpeed * (boosting ? 1.32 : 1.0);
+    const acc = spec.accel * (boosting ? 1.45 : 1.0);
+
+    if(accelIn > 0 && forwardSpeed < topSpd){
+      car.vx += fwdX * acc * dt;
+      car.vz += fwdZ * acc * dt;
+    }
+    if(brakeIn > 0){
+      if(forwardSpeed > 2){
+        car.vx -= fwdX * acc * 1.3 * dt;
+        car.vz -= fwdZ * acc * 1.3 * dt;
+      }else if(forwardSpeed > -topSpd*0.42){
+        car.vx -= fwdX * acc * 0.75 * dt;
+        car.vz -= fwdZ * acc * 0.75 * dt;
+      }
+    }
+
+    // Steering & Drifting
+    const speedFactor = Math.min(1, Math.abs(forwardSpeed) / 7);
+    const revSign = forwardSpeed >= -0.5 ? 1 : -1;
+    const isDrifting = handbrake && Math.abs(forwardSpeed) > 12 && Math.abs(steerIn) > 0;
+
+    if(isDrifting){
+      car.drifting = true;
+      car.driftTime += dt;
+      car.yaw += steerIn * spec.turn * 1.32 * revSign * dt;
+      // Low lateral grip for stylish tail slides
+      const keepLat = Math.pow(0.28, dt);
+      const newLat = lateralSpeed * keepLat;
+      const newFwd = forwardSpeed * Math.pow(0.86, dt);
+      car.vx = fwdX*newFwd + rightX*newLat;
+      car.vz = fwdZ*newFwd + rightZ*newLat;
+
+      skidTimer -= dt;
+      if(skidTimer <= 0){
+        skidTimer = 0.035;
+        dropSkid(car.x - rightX*0.85 - fwdX*1.2, car.y, car.z - rightZ*0.85 - fwdZ*1.2, car.yaw);
+        dropSkid(car.x + rightX*0.85 - fwdX*1.2, car.y, car.z + rightZ*0.85 - fwdZ*1.2, car.yaw);
+      }
+    }else{
+      if(car.drifting && car.driftTime > 0.65){
+        const driftPts = Math.round(car.driftTime * 160 * spec.driftMult);
+        score += driftPts;
+        car.boost = Math.min(100, car.boost + Math.min(30, car.driftTime*14));
+        // Mini-turbo burst on drift exit!
+        car.vx += fwdX * 11;
+        car.vz += fwdZ * 11;
+        showToast(`💨 DRIFT BOOST! +${driftPts} PTS`, "#38bdf8");
+      }
+      car.drifting = false;
+      car.driftTime = 0;
+
+      car.yaw += steerIn * spec.turn * speedFactor * revSign * dt;
+      // High lateral tire grip
+      const grip = Math.pow(0.004, dt);
+      const rolling = (accelIn===0 && brakeIn===0) ? Math.pow(0.45, dt) : Math.pow(0.92, dt);
+      const newLat = lateralSpeed * grip;
+      const newFwd = forwardSpeed * rolling;
+      car.vx = fwdX*newFwd + rightX*newLat;
+      car.vz = fwdZ*newFwd + rightZ*newLat;
+    }
+
+    car.steerAngle += (steerIn*0.42 - car.steerAngle)*Math.min(1, dt*12);
+  }else{
+    // AIRBORNE TRICK CONTROLS!
+    car.airTime += dt;
+    const flipRate = spec.airSpin;
+    const pitchDelta = (accelIn - brakeIn) * flipRate * dt;
+    const rollDelta  = -steerIn * flipRate * 1.15 * dt;
+    const spinDelta  = spinIn * flipRate * 1.1 * dt;
+
+    car.pitch += pitchDelta;
+    car.roll  += rollDelta;
+    car.spinOffset += spinDelta;
+
+    car.airPitchDeg += THREE.MathUtils.radToDeg(pitchDelta);
+    car.airRollDeg  += THREE.MathUtils.radToDeg(rollDelta);
+    car.airSpinDeg  += THREE.MathUtils.radToDeg(spinDelta);
+
+    // Slight air drag
+    car.vx *= Math.pow(0.94, dt);
+    car.vz *= Math.pow(0.94, dt);
+
+    // Update live Air Trick Banner
+    if(car.airTime > 0.25){
+      const banner = $("trickBanner");
+      banner.style.opacity = "1";
+      const flips = Math.floor(Math.abs(car.airPitchDeg)/300);
+      const rolls = Math.floor(Math.abs(car.airRollDeg)/300);
+      const spins = Math.floor(Math.abs(car.airSpinDeg)/300);
+      let title = "BIG AIR!";
+      if(flips>0 && rolls>0) title = "CORKSCREW FLIP!";
+      else if(flips>0) title = (car.airPitchDeg>0?"FRONTFLIP":"BACKFLIP") + (flips>1?` x${flips}!`:"!");
+      else if(rolls>0) title = `BARREL ROLL${rolls>1?` x${rolls}`:""}!`;
+      else if(spins>0) title = `360 FLAT SPIN${spins>1?` x${spins}`:""}!`;
+
+      const estPts = Math.round(car.airTime*120 + flips*350 + rolls*350 + spins*300 + car.airRings*500);
+      $("trickTitle").textContent = title;
+      $("trickDetail").textContent = `Pitch ${Math.round(Math.abs(car.airPitchDeg))}° · Roll ${Math.round(Math.abs(car.airRollDeg))}° · Air ${car.airTime.toFixed(1)}s`;
+      $("trickPoints").textContent = `+${estPts} PTS`;
+    }
+  }
+
+  // Integrate XZ & Check Building Collisions
+  const prevSupport = getSupportHeight(car.x, car.z, car.y);
+  car.x += car.vx * dt;
+  car.z += car.vz * dt;
+  resolveBuildingCollisions();
+
+  // Check Boost Pads
+  for(const pad of boostPads){
+    if(car.grounded && Math.abs(car.x - pad.x) < pad.w/2 + 1.0 && Math.abs(car.z - pad.z) < pad.d/2 + 1.0){
+      car.vx += pad.dirX * 32 * dt * 4;
+      car.vz += pad.dirZ * 32 * dt * 4;
+      car.boost = Math.min(100, car.boost + 40*dt);
+    }
+  }
+
+  // Vertical Gravity, Ramp Slope & Ramp Launch Physics
+  const supportY = getSupportHeight(car.x, car.z, car.y);
+
+  if(car.grounded){
+    if(supportY >= prevSupport - 0.35){
+      // Climbing ramp or driving on flat surface
+      const climbVy = (supportY - car.y) / Math.max(dt, 0.001);
+      car.y = supportY;
+      car.vy = Math.max(0, climbVy);
+    }else{
+      // Launched off ramp lip or drove off rooftop edge!
+      car.grounded = false;
+      const horizSpd = Math.hypot(car.vx, car.vz);
+      if(prevSupport > 1.2 && horizSpd > 14){
+        // Give crisp upward ramp kick scaled by car's jumpBonus!
+        car.vy = Math.max(car.vy, horizSpd * 0.34 * spec.jumpBonus);
+      }
+    }
+  }else{
+    car.vy -= 24 * dt;
+    car.y += car.vy * dt;
+    if(car.y <= supportY && car.vy <= 0){
+      car.y = supportY;
+      car.vy = 0;
+      car.grounded = true;
+      evaluateLanding();
+    }
+  }
+
+  // Update Visual Car Transform & Wheel Spin
+  carRoot.position.set(car.x, car.y, car.z);
+  carRoot.rotation.order = "YXZ";
+  carRoot.rotation.y = car.yaw + car.spinOffset;
+  carRoot.rotation.x = car.pitch;
+  carRoot.rotation.z = car.roll;
+
+  const wheelSpin = forwardSpeed * dt * 2.2;
+  for(const w of wheels){
+    if(w.isFront) w.pivot.rotation.y = car.steerAngle;
+    w.tire.rotation.x += wheelSpin;
+    w.rim.rotation.x += wheelSpin;
+  }
+
+  // Flashing Police Lightbar
+  if(policeBeaconRed && policeBeaconBlue){
+    const flash = Math.sin(time * 18) > 0;
+    policeBeaconRed.material.color.setHex(flash ? 0xff1e1e : 0x450a0a);
+    policeBeaconBlue.material.color.setHex(!flash ? 0x1e90ff : 0x0a192f);
+  }
+}
+
+/* =========================================
+   COINS & STUNT RINGS UPDATE
+========================================= */
+
+function updateWorldPickups(dt, time){
+  // Coins
+  for(const c of coins){
+    if(!c.active){
+      c.respawnTimer -= dt;
+      if(c.respawnTimer <= 0){
+        c.active = true;
+        c.mesh.visible = true;
+      }
+      continue;
+    }
+    c.mesh.rotation.y = time * (c.isStar ? 3.2 : 2.4);
+    c.mesh.position.y = c.y + Math.sin(time*3 + c.x)*0.18;
+
+    const dx = car.x - c.x;
+    const dy = (car.y + 0.9) - c.y;
+    const dz = car.z - c.z;
+    if(dx*dx + dy*dy + dz*dz < 2.6*2.6){
+      c.active = false;
+      c.mesh.visible = false;
+      c.respawnTimer = 28; // Respawns after 28s so city always stays rewarding
+
+      saveState.coins += c.value;
+      score += c.value * 10;
+      if(score > saveState.bestScore) saveState.bestScore = score;
+      car.boost = Math.min(100, car.boost + (c.isStar ? 20 : 6));
+      writeSave();
+
+      if(c.isStar){
+        showToast(`⭐ STAR GEM! +${c.value} Coins`, "#38bdf8");
+      }
+    }
+  }
+
+  // Stunt Rings
+  for(const r of stuntRings){
+    if(r.cooldown > 0) r.cooldown -= dt;
+    const dx = car.x - r.x;
+    const dy = (car.y + 0.9) - r.y;
+    const dz = car.z - r.z;
+    if(r.cooldown <= 0 && (dx*dx + dy*dy + dz*dz) < (r.radius + 1.0)*(r.radius + 1.0)){
+      r.cooldown = 3.0;
+      car.airRings += 1;
+      saveState.coins += 15;
+      score += 300;
+      car.boost = Math.min(100, car.boost + 35);
+      writeSave();
+      showToast("⭕ STUNT RING CLEARED! +15 Coins & Nitro Refill!", "#ffbe0b");
+    }
+  }
+}
+
+/* =========================================
+   CAMERA & MINIMAP
+========================================= */
+
+const camPos = new THREE.Vector3(0, 8, 35);
+const camLook = new THREE.Vector3(0, 2, 20);
+
+function updateCamera(dt){
+  const fwdX = Math.sin(car.yaw);
+  const fwdZ = Math.cos(car.yaw);
+  const spd = Math.hypot(car.vx, car.vz);
+
+  let targetPos, targetLook;
+  if(camMode === 2){
+    // Hood Cam
+    targetPos = new THREE.Vector3(car.x + fwdX*0.6, car.y + 1.65, car.z + fwdZ*0.6);
+    targetLook = new THREE.Vector3(car.x + fwdX*18, car.y + 1.4, car.z + fwdZ*18);
+    camPos.copy(targetPos);
+    camLook.copy(targetLook);
+  }else{
+    const dist = camMode === 1 ? 12.5 : 8.2;
+    const height = camMode === 1 ? 5.2 : 3.4;
+    targetPos = new THREE.Vector3(
+      car.x - fwdX * dist,
+      car.y + height + (car.grounded ? 0 : 1.1),
+      car.z - fwdZ * dist
+    );
+    targetLook = new THREE.Vector3(
+      car.x + fwdX * 6,
+      car.y + 1.3,
+      car.z + fwdZ * 6
+    );
+    const k = 1 - Math.exp(-dt * 8.5);
+    camPos.lerp(targetPos, k);
+    camLook.lerp(targetLook, k * 1.3);
+  }
+
+  camera.fov = 66 + Math.min(18, spd * 0.24);
+  camera.updateProjectionMatrix();
+  camera.position.copy(camPos);
+  camera.lookAt(camLook);
+}
+
+const mapCanvas = $("minimap");
+const mctx = mapCanvas.getContext("2d");
+
+function drawMinimap(){
+  const W = mapCanvas.width, H = mapCanvas.height;
+  const scale = W / (WORLD_HALF*2);
+  const toX = wx => (wx + WORLD_HALF) * scale;
+  const toY = wz => (wz + WORLD_HALF) * scale;
+
+  mctx.fillStyle = "#111927";
+  mctx.fillRect(0, 0, W, H);
+
+  // Roads
+  mctx.strokeStyle = "#334155";
+  mctx.lineWidth = 4;
+  for(const c of ROAD_COORDS){
+    mctx.beginPath(); mctx.moveTo(toX(c), 0); mctx.lineTo(toX(c), H); mctx.stroke();
+    mctx.beginPath(); mctx.moveTo(0, toY(c)); mctx.lineTo(W, toY(c)); mctx.stroke();
+  }
+
+  // Ramps (Orange dots)
+  mctx.fillStyle = "#ff9f1c";
+  for(const r of ramps){
+    mctx.fillRect(toX(r.x)-2.5, toY(r.z)-2.5, 5, 5);
+  }
+
+  // Active Coins (Yellow/Cyan dots)
+  for(const c of coins){
+    if(!c.active) continue;
+    mctx.fillStyle = c.isStar ? "#38bdf8" : "#facc15";
+    mctx.fillRect(toX(c.x)-1.2, toY(c.z)-1.2, 2.4, 2.4);
+  }
+
+  // Player Arrow
+  mctx.save();
+  mctx.translate(toX(car.x), toY(car.z));
+  mctx.rotate(-car.yaw);
+  mctx.fillStyle = "#4ade80";
+  mctx.beginPath();
+  mctx.moveTo(0, -5.5);
+  mctx.lineTo(4, 4.5);
+  mctx.lineTo(-4, 4.5);
+  mctx.closePath();
+  mctx.fill();
+  mctx.restore();
+}
+
+/* =========================================
+   GARAGE & HUD UPDATES
+========================================= */
+
+function renderGarage(){
+  $("garageCoins").textContent = saveState.coins;
+  const curColor = activeCarColor();
+
+  // Paint Swatches
+  const swWrap = $("swatches");
+  swWrap.innerHTML = "";
+  PAINT_COLORS.forEach(hex => {
+    const d = document.createElement("div");
+    d.className = "swatch" + (curColor.toLowerCase()===hex.toLowerCase() ? " sel" : "");
+    d.style.background = hex;
+    d.onclick = () => {
+      saveState.paints[saveState.selected] = hex;
+      writeSave();
+      buildCarMesh();
+      renderGarage();
+    };
+    swWrap.appendChild(d);
+  });
+
+  // Car Cards
+  const grid = $("carGrid");
+  grid.innerHTML = "";
+  CARS.forEach(c => {
+    const unlocked = saveState.unlocked.includes(c.id);
+    const active = saveState.selected === c.id;
+
+    const card = document.createElement("div");
+    card.className = "carCard" + (active ? " active" : "");
+
+    const spdPct = Math.round((c.maxSpeed / 70)*100);
+    const driftPct = Math.round((c.driftMult / 1.65)*100);
+    const airPct = Math.round((c.airSpin / 5.0)*100);
+
+    card.innerHTML = `
+      <div>
+        <div class="carTitle">
+          <span>${c.name}</span>
+          <span style="color:#ffc94b;font-size:13px">${unlocked ? "OWNED" : "💰 "+c.cost}</span>
+        </div>
+        <div class="carDesc">${c.desc}</div>
+        <div class="statRow">Top Speed<div class="barBg"><div class="barFg" style="width:${spdPct}%"></div></div></div>
+        <div class="statRow">Drift Power<div class="barBg"><div class="barFg" style="width:${driftPct}%;background:#a855f7"></div></div></div>
+        <div class="statRow">Air Spin &amp; Flip<div class="barBg"><div class="barFg" style="width:${airPct}%;background:#4ade80"></div></div></div>
+      </div>
+    `;
+
+    const btn = document.createElement("button");
+    btn.className = "cardBtn" + (active ? " equipped" : (unlocked ? " equip" : ""));
+    if(active){
+      btn.textContent = "✓ EQUIPPED";
+      btn.disabled = true;
+    }else if(unlocked){
+      btn.textContent = "SELECT CAR";
+      btn.onclick = () => {
+        saveState.selected = c.id;
+        writeSave();
+        buildCarMesh();
+        renderGarage();
+        updateHUD();
+      };
+    }else{
+      btn.textContent = `BUY FOR ${c.cost} COINS`;
+      btn.disabled = saveState.coins < c.cost;
+      btn.onclick = () => {
+        if(saveState.coins < c.cost) return;
+        saveState.coins -= c.cost;
+        saveState.unlocked.push(c.id);
+        saveState.selected = c.id;
+        writeSave();
+        buildCarMesh();
+        renderGarage();
+        updateHUD();
+        showToast(`🎉 Unlocked ${c.name}!`, "#ffc94b");
+      };
+    }
+    card.appendChild(btn);
+    grid.appendChild(card);
+  });
+}
+
+function toggleGarage(forceState){
+  if(!playing) return;
+  garageOpen = typeof forceState==="boolean" ? forceState : !garageOpen;
+  if(garageOpen){
+    $("overlay").style.display = "flex";
+    $("startModal").style.display = "none";
+    $("garageModal").style.display = "block";
+    renderGarage();
+  }else{
+    $("overlay").style.display = "none";
+    $("garageModal").style.display = "none";
+  }
+}
+
+function updateHUD(){
+  $("coinVal").textContent = saveState.coins;
+  $("scoreVal").textContent = score;
+  $("bestVal").textContent = saveState.bestScore;
+  const mph = Math.round(Math.hypot(car.vx, car.vz) * 2.35);
+  $("speedVal").textContent = mph;
+  const gear = mph === 0 ? "N" : Math.min(6, Math.max(1, Math.ceil(mph / 26)));
+  $("gearVal").textContent = gear;
+  $("carNameHud").textContent = activeCarSpec().name.toUpperCase();
+  $("boostFill").style.width = Math.round(car.boost) + "%";
+  $("driftFill").style.width = Math.min(100, Math.round((car.driftTime / 1.5) * 100)) + "%";
+}
+
+/* =========================================
+   CONTROLS & MAIN ANIMATION LOOP
+========================================= */
+
+$("playBtn").onclick = startGame;
+$("garageBtn").onclick = () => toggleGarage();
+$("closeGarageBtn").onclick = () => toggleGarage(false);
+$("camBtn").onclick = () => {
+  camMode = (camMode + 1) % 3;
+  $("camBtn").textContent = `🎥 CAM: ${CAM_NAMES[camMode]} (C)`;
+};
+renderer.domElement.addEventListener("pointerdown", () => {
+  window.focus();
+  renderer.domElement.focus();
+});
+
+function handleKeyDown(e){
+  const code = e.code;
+  keyState[code] = true;
+  if(e.key){
+    const k = e.key.toLowerCase();
+    if(k==="w") keyState.KeyW = true;
+    if(k==="a") keyState.KeyA = true;
+    if(k==="s") keyState.KeyS = true;
+    if(k==="d") keyState.KeyD = true;
+    if(k==="q") keyState.KeyQ = true;
+    if(k==="e") keyState.KeyE = true;
+    if(k===" ") keyState.Space = true;
+  }
+
+  if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(code)){
+    e.preventDefault();
+  }
+
+  // Auto-start immediately if player presses any driving key on the title overlay
+  if(!playing && (DRIVE_KEYS.has(code) || code === "Enter" || code === "Space")){
+    startGame();
+  }
+
+  if(code === "KeyG" && playing) toggleGarage();
+  if(code === "KeyR" && playing && !garageOpen) resetCarUpright();
+  if(code === "KeyC" && playing){
+    camMode = (camMode + 1) % 3;
+    $("camBtn").textContent = `🎥 CAM: ${CAM_NAMES[camMode]} (C)`;
+  }
+}
+
+function handleKeyUp(e){
+  const code = e.code;
+  keyState[code] = false;
+  if(e.key){
+    const k = e.key.toLowerCase();
+    if(k==="w") keyState.KeyW = false;
+    if(k==="a") keyState.KeyA = false;
+    if(k==="s") keyState.KeyS = false;
+    if(k==="d") keyState.KeyD = false;
+    if(k==="q") keyState.KeyQ = false;
+    if(k==="e") keyState.KeyE = false;
+    if(k===" ") keyState.Space = false;
+  }
+}
+
+window.addEventListener("keydown", handleKeyDown, {capture:true});
+document.addEventListener("keydown", handleKeyDown, {capture:true});
+window.addEventListener("keyup", handleKeyUp, {capture:true});
+document.addEventListener("keyup", handleKeyUp, {capture:true});
+
+window.addEventListener("blur", () => {
+  for(const k in keyState) keyState[k] = false;
+});
+
+window.addEventListener("resize", () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+buildCarMesh();
+updateHUD();
+
+let lastTime = performance.now();
+function animate(now){
+  requestAnimationFrame(animate);
+  const dt = Math.min((now - lastTime)/1000 || 0, 0.04);
+  lastTime = now;
+  const time = now / 1000;
+
+  if(playing && !garageOpen){
+    updateCar(dt, time);
+    updateWorldPickups(dt, time);
+    updateCamera(dt);
+    drawMinimap();
+    updateHUD();
+
+    if(toastTimer > 0){
+      toastTimer -= dt;
+      if(toastTimer <= 0) $("toast").textContent = "";
+    }
+  }else if(!playing){
+    // Scenic orbit around car on start screen
+    carRoot.position.set(car.x, car.y, car.z);
+    camera.position.set(car.x + Math.cos(time*0.4)*11, 5.2, car.z + Math.sin(time*0.4)*11);
+    camera.lookAt(car.x, 1.5, car.z);
+  }
+
+  renderer.render(scene, camera);
+}
+
+requestAnimationFrame(animate);
+});
+</script>
+</body>
+</html>
